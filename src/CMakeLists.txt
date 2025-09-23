@@ -1,0 +1,6 @@
+file(GLOB_RECURSE SRC_FILES
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
+    "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
+)
+
+target_sources(${PROJECT_NAME} PRIVATE ${SRC_FILES})
