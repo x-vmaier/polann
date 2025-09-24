@@ -1,50 +1,80 @@
 cmake_minimum_required(VERSION 3.16)
-project(NeuralNetwork VERSION 1.0.0 LANGUAGES CXX)
+project(Polann VERSION 1.0.0 LANGUAGES CXX)
 
-# Project metadata
-set(PROJECT_DISPLAY_NAME "Neural Network")
-set(PROJECT_IDENTIFIER "com.xvmaier.neuralnetwork")
-set(PROJECT_CREATOR "Valentin Maier")
-set(PROJECT_COPYRIGHT "Copyright (c) 2025 Valentin Maier, LLC")
-
-# C++ standard
+# Set C++ standard
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-
-# For clangd, compile_commands.json
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-# Output directories for single/multi-config generators
+# Build options
+option(POLANN_BUILD_EXAMPLES "Build examples" ON)
+option(POLANN_BUILD_TESTS "Build tests" ON)
+option(BUILD_SHARED_LIBS "Build shared libraries" OFF)
+
+# Output directories
 if(CMAKE_CONFIGURATION_TYPES)
     foreach(cfg Debug Release RelWithDebInfo MinSizeRel)
         string(TOUPPER ${cfg} CFG_UPPER)
-        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CFG_UPPER} "${CMAKE_BINARY_DIR}/${cfg}")
-        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CFG_UPPER} "${CMAKE_BINARY_DIR}/${cfg}")
+        set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${CFG_UPPER} "${CMAKE_BINARY_DIR}/${cfg}/bin")
+        set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${CFG_UPPER} "${CMAKE_BINARY_DIR}/${cfg}/lib")
+        set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${CFG_UPPER} "${CMAKE_BINARY_DIR}/${cfg}/lib")
     endforeach()
 else()
     set(CMAKE_RUNTIME_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/bin")
     set(CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
+    set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
-# Main executable
-add_executable(${PROJECT_NAME})
-
-# Apply project metadata
+# Generate config.h
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/config.h"
+    "${CMAKE_CURRENT_BINARY_DIR}/include/polann/config.h"
     @ONLY
 )
 
-# Public headers
-target_include_directories(${PROJECT_NAME}
-    PUBLIC "${CMAKE_CURRENT_SOURCE_DIR}/include"
-    PRIVATE "${CMAKE_CURRENT_BINARY_DIR}"
-)
-
-# Source files
+# Add subdirectories
 add_subdirectory(src)
 
-# Link libraries
-#target_link_libraries(${PROJECT_NAME} PRIVATE)
+if(POLANN_BUILD_EXAMPLES)
+    add_subdirectory(examples)
+endif()
+
+if(POLANN_BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
+
+# Installation
+include(GNUInstallDirs)
+include(CMakePackageConfigHelpers)
+
+# Install headers
+install(DIRECTORY include/polann
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}
+    FILES_MATCHING PATTERN "*.hpp"
+)
+
+# Install generated config.h
+install(FILES "${CMAKE_CURRENT_BINARY_DIR}/include/polann/config.h"
+    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/polann
+)
+
+# Create and install package config files
+configure_package_config_file(
+    "${CMAKE_CURRENT_SOURCE_DIR}/cmake/PolannConfig.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/PolannConfig.cmake"
+    INSTALL_DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/polann
+)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/PolannConfigVersion.cmake"
+    VERSION ${PROJECT_VERSION}
+    COMPATIBILITY AnyNewerVersion
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/PolannConfig.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/PolannConfigVersion.cmake"
+    DESTINATION ${CMAKE_INSTALL_LIBDIR}/cmake/polann
+)

@@ -1,6 +1,6 @@
 #pragma once
 
-namespace core
+namespace polann::core
 {
     enum class LayerType
     {
@@ -15,4 +15,4 @@ namespace core
 
         Layer(LayerType type, int neuronCount) : type(type), neuronCount(neuronCount) {}
     };
-} // namespace core
+} // namespace polann::core
