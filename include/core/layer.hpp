@@ -15,5 +15,4 @@ namespace core
 
         Layer(LayerType type, int neuronCount) : type(type), neuronCount(neuronCount) {}
     };
-
 } // namespace core

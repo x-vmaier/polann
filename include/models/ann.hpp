@@ -5,29 +5,29 @@
 #include <random>
 #include <stdexcept>
 #include "core/layer.hpp"
-#include "utils/activation.hpp"
+#include "utils/activation_functions.hpp"
 
 namespace models
 {
     class ANN
     {
     public:
-        ANN() : _rng(std::random_device{}()),
-                _dist(0.0f, 1.0f) {}
+        ANN() : rng_(std::random_device{}()),
+                dist_(0.0f, 1.0f) {}
 
         ~ANN() = default;
 
         void addLayer(core::LayerType type, float (*activationFunction)(float), int neuronCount)
         {
             // Check for model initialization bugs
-            if (type == core::LayerType::INPUT_LAYER && !_layers.empty())
+            if (type == core::LayerType::INPUT_LAYER && !layers_.empty())
                 throw std::logic_error("Model only allows one input layer!");
 
-            _layers.emplace_back(core::Layer{type, neuronCount});
+            layers_.emplace_back(core::Layer{type, neuronCount});
 
             // Offset bookkeeping for weights
-            size_t offset = _weights.size();
-            _layerWeightOffsets.push_back(offset);
+            size_t offset = weights_.size();
+            layerWeightOffsets_.push_back(offset);
 
             if (type == core::LayerType::INPUT_LAYER)
                 return; // Input layer has no linear or non-linear component
@@ -35,19 +35,19 @@ namespace models
             // Initialize neurons
             for (int n = 0; n < neuronCount; n++)
             {
-                _biases.push_back(_dist(_rng));
-                _activations.push_back(activationFunction);
+                biases_.push_back(dist_(rng_));
+                activations_.push_back(activationFunction);
 
                 // Neuron has number of neurons in previous layer weights
-                for (int p = 0; p < _layers.at(_layers.size() - 2).neuronCount; p++)
-                    _weights.push_back(_dist(_rng));
+                for (int p = 0; p < layers_.at(layers_.size() - 2).neuronCount; p++)
+                    weights_.push_back(dist_(rng_));
             }
         }
 
         std::vector<float> predict(const std::vector<float> &inputs)
         {
             // Check if input layer exists
-            if (_layers.empty() || _layers.at(0).type != core::LayerType::INPUT_LAYER)
+            if (layers_.empty() || layers_.at(0).type != core::LayerType::INPUT_LAYER)
                 throw std::runtime_error("No Input Layer specified!");
 
             // Outputs of the previous layer created outside the loop to
@@ -57,12 +57,12 @@ namespace models
             std::vector<float> outputs = inputs;
 
             // Feed forward pass
-            for (size_t layerOffset = 1; layerOffset < _layers.size(); layerOffset++)
+            for (size_t layerOffset = 1; layerOffset < layers_.size(); layerOffset++)
             {
-                switch (_layers.at(layerOffset).type)
+                switch (layers_.at(layerOffset).type)
                 {
                 case core::LayerType::DENSE_LAYER:
-                    outputs = handleDenseLayer(outputs, layerOffset);
+                    outputs = handle_dense_layer(outputs, layerOffset);
                     break;
 
                 case core::LayerType::INPUT_LAYER:
@@ -78,62 +78,61 @@ namespace models
         }
 
     private:
-        std::mt19937 _rng;
-        std::uniform_real_distribution<float> _dist;
+        std::mt19937 rng_;
+        std::uniform_real_distribution<float> dist_;
 
-        std::vector<float> _weights;                // Indexing: _weights[layerOffset + neuronOffset + input]
-        std::vector<float> _biases;                 // Indexing: _biases[layerOffset + neuronOffset]
-        std::vector<float (*)(float)> _activations; // Indexing: _activations[layerOffset + neuronOffset]
-        std::vector<size_t> _layerWeightOffsets;    // Fast access for layer offsets in the _weights vector
-        std::vector<core::Layer> _layers;
+        std::vector<float> weights_;                // Indexing: weights_[layerOffset + neuronOffset + input]
+        std::vector<float> biases_;                 // Indexing: biases_[layerOffset + neuronOffset]
+        std::vector<float (*)(float)> activations_; // Indexing: activations_[layerOffset + neuronOffset]
+        std::vector<size_t> layerWeightOffsets_;    // Fast access for layer offsets in the weights_ vector
+        std::vector<core::Layer> layers_;
 
-        // Compute index into flat _weights vector
-        inline size_t weightIndex(size_t layerOffset, size_t neuronOffset, size_t inputOffset) const
+        // Compute index into flat weights_ vector
+        [[nodiscard]] inline size_t weight_index(size_t layerOffset, size_t neuronOffset, size_t inputOffset) const
         {
-            size_t prevLayerSize = _layers.at(layerOffset - 1).neuronCount;
-            size_t base = _layerWeightOffsets.at(layerOffset);
+            size_t prevLayerSize = layers_.at(layerOffset - 1).neuronCount;
+            size_t base = layerWeightOffsets_.at(layerOffset);
             return base + neuronOffset * prevLayerSize + inputOffset;
         }
 
-        // Compute index into flat _bias vector
-        inline size_t biasIndex(size_t layerOffset, size_t neuronOffset) const
+        // Compute index into flat bias vector
+        [[nodiscard]] inline size_t bias_index(size_t layerOffset, size_t neuronOffset) const
         {
             size_t idx = neuronOffset;
             for (size_t i = 1; i < layerOffset; i++)
-                idx += _layers.at(i).neuronCount;
+                idx += layers_.at(i).neuronCount;
             return idx;
         }
 
-        // Compute index into flat _activation vector
-        inline size_t activationIndex(size_t layerOffset, size_t neuronOffset) const
+        // Compute index into flat activation vector
+        [[nodiscard]] inline size_t activation_index(size_t layerOffset, size_t neuronOffset) const
         {
             size_t idx = neuronOffset;
             for (size_t i = 1; i < layerOffset; i++)
-                idx += _layers.at(i).neuronCount;
+                idx += layers_.at(i).neuronCount;
             return idx;
         }
 
-        std::vector<float> handleDenseLayer(const std::vector<float> &inputs, size_t layerOffset)
+        std::vector<float> handle_dense_layer(const std::vector<float> &inputs, size_t layerOffset)
         {
-            std::vector<float> outputs(_layers.at(layerOffset).neuronCount); // Avoid allocation per push_back
+            std::vector<float> outputs(layers_.at(layerOffset).neuronCount); // Avoid allocation per push_back
             for (size_t neuronOffset = 0; neuronOffset < outputs.size(); neuronOffset++)
             {
                 // Add bias to sum
-                float sum = _biases.at(biasIndex(layerOffset, neuronOffset));
+                float sum = biases_.at(bias_index(layerOffset, neuronOffset));
 
                 // Add weighted inputs to sum
                 for (size_t input = 0; input < inputs.size(); input++)
                 {
-                    size_t wIdx = weightIndex(layerOffset, neuronOffset, input);
-                    sum += inputs.at(input) * _weights.at(wIdx);
+                    size_t weight_idx = weight_index(layerOffset, neuronOffset, input);
+                    sum += inputs.at(input) * weights_.at(weight_idx);
                 }
 
                 // Add neuron activation to the outputs
-                outputs[neuronOffset] = _activations.at(activationIndex(layerOffset, neuronOffset))(sum);
+                outputs[neuronOffset] = activations_.at(activation_index(layerOffset, neuronOffset))(sum);
             }
 
             return outputs;
         }
     };
-
 } // namespace models
