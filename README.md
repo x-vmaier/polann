@@ -6,7 +6,7 @@
 ![GitHub Release](https://img.shields.io/github/v/release/x-vmaier/polann?include_prereleases&style=flat-square)
 ![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/x-vmaier/polann&style=flat-square)
 
-**Polann** (Performance-oriented Library for Artificial Neural Networks) is a high-performance C++ library for building, training, and running neural networks efficiently.
+**Polann** (Performance-oriented Library for Artificial Neural Networks) is a C++ library for building, training, and running neural networks.
 
 ## Building from source
 
