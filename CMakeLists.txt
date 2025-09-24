@@ -48,12 +48,3 @@ add_subdirectory(src)
 
 # Link libraries
 #target_link_libraries(${PROJECT_NAME} PRIVATE)
-
-# Assets copy
-set(ASSETS_SOURCE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/assets")
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-    "${ASSETS_SOURCE_DIR}"
-    "$<TARGET_FILE_DIR:${PROJECT_NAME}>/assets"
-    COMMENT "Copying assets..."
-)

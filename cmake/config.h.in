@@ -2,11 +2,11 @@
 
 #include <string_view>
 
-namespace ProjectInfo
+namespace project_info
 {
     inline constexpr std::string_view DISPLAY_NAME = "@PROJECT_DISPLAY_NAME@";
     inline constexpr std::string_view VERSION = "@PROJECT_VERSION@";
     inline constexpr std::string_view IDENTIFIER = "@PROJECT_IDENTIFIER@";
     inline constexpr std::string_view CREATOR = "@PROJECT_CREATOR@";
     inline constexpr std::string_view COPYRIGHT = "@PROJECT_COPYRIGHT@";
-}
+} // namespace project_info
