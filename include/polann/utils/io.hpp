@@ -1,9 +1,11 @@
 #pragma once
 
-#include <vector>
-#include <ostream>
-
 template <typename T>
+concept Streamable = requires(std::ostream &os, const T &t) {
+    { os << t } -> std::same_as<std::ostream &>;
+};
+
+template <Streamable T>
 std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
 {
     os << "[";
