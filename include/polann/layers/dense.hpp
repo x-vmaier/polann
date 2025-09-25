@@ -2,17 +2,20 @@
 
 #include <span>
 #include <array>
-#include <vector>
 #include <random>
-#include <ranges>
-#include <functional>
-#include "polann/utils/activation_functions.hpp"
 
 namespace polann::layers
 {
-    template <auto ActivationFunc = polann::utils::activation_functions::identity, size_t InputSize = 0, size_t OutputSize = 0>
+    template <auto ActivationFunc, size_t InputSize, size_t OutputSize>
+        requires requires(float x) {
+            { ActivationFunc(x) } -> std::convertible_to<float>;
+        }
     struct Dense
     {
+        // Make layer shape accessable
+        static constexpr size_t inputSize = InputSize;
+        static constexpr size_t outputSize = OutputSize;
+
         std::array<float, InputSize * OutputSize> weights;
         std::array<float, OutputSize> biases;
 

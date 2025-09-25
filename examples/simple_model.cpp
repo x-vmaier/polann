@@ -2,6 +2,7 @@
 #include <iostream>
 #include "polann/layers/dense.hpp"
 #include "polann/core/model_builder.hpp"
+#include "polann/utils/activation_functions.hpp"
 #include "polann/utils/io.hpp"
 
 using namespace polann::core;
