@@ -4,6 +4,7 @@
 #include <array>
 #include <vector>
 #include <random>
+#include <ranges>
 #include <functional>
 #include "polann/utils/activation_functions.hpp"
 
@@ -19,8 +20,8 @@ namespace polann::layers
         {
             std::mt19937 rng;
             std::uniform_real_distribution<float> dist;
-            weights.fill(dist(rng));
-            biases.fill(dist(rng));
+            std::ranges::generate(weights, [&] { return dist(rng); });
+            std::ranges::generate(biases, [&] { return dist(rng); });
         }
 
         std::vector<float> forward(std::span<const float> in) const
