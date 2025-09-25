@@ -18,3 +18,17 @@ std::ostream &operator<<(std::ostream &os, const std::vector<T> &v)
     os << "]";
     return os;
 }
+
+template <Streamable T, std::size_t N>
+std::ostream &operator<<(std::ostream &os, const std::array<T, N> &a)
+{
+    os << "[";
+    for (size_t i = 0; i < N; i++)
+    {
+        os << a[i];
+        if (i + 1 < N)
+            os << ", ";
+    }
+    os << "]";
+    return os;
+}
