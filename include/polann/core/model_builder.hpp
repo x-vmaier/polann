@@ -7,10 +7,9 @@
 namespace polann::core
 {
     template <typename... Layers>
-    struct ModelBuilder
+    class ModelBuilder
     {
-        std::tuple<Layers...> layers;
-
+    public:
         // constructor from tuple
         explicit ModelBuilder(std::tuple<Layers...> ls)
             : layers(std::move(ls)) {}
@@ -33,6 +32,9 @@ namespace polann::core
                 { return polann::models::NN<Layers...>(ls...); },
                 layers);
         }
+
+    private:
+        std::tuple<Layers...> layers;
     };
 
     // Start empty builder

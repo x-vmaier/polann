@@ -7,10 +7,9 @@
 namespace polann::models
 {
     template <typename... Layers>
-    struct NN
+    class NN
     {
-        std::tuple<Layers...> layers;
-
+    public:
         explicit NN(Layers... ls) : layers(std::move(ls)...) {}
 
         std::vector<float> predict(std::span<const float> input) const
@@ -19,6 +18,8 @@ namespace polann::models
         }
 
     private:
+        std::tuple<Layers...> layers;
+
         template <size_t... I>
         std::vector<float> predict_impl(std::span<const float> input, std::index_sequence<I...>) const
         {
