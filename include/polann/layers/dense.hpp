@@ -18,10 +18,6 @@ namespace polann::layers
         requires requires(float x) { { ActivationFunc(x) } -> std::convertible_to<float>; }
     struct Dense
     {
-        // Allow compile-time access
-        static constexpr size_t inputSize = InputSize;
-        static constexpr size_t outputSize = OutputSize;
-
         std::array<float, InputSize * OutputSize> weights; // Flattened weight matrix [OutputSize x InputSize]
         std::array<float, OutputSize> biases;
 
@@ -34,10 +30,8 @@ namespace polann::layers
         {
             std::mt19937 rng;
             std::uniform_real_distribution<float> dist;
-            std::ranges::generate(weights, [&]
-                                  { return dist(rng); });
-            std::ranges::generate(biases, [&]
-                                  { return dist(rng); });
+            std::ranges::generate(weights, [&] { return dist(rng); });
+            std::ranges::generate(biases, [&] { return dist(rng); });
         }
 
         /**
@@ -45,25 +39,26 @@ namespace polann::layers
          *
          * @param in Input vector of size InputSize
          * @return std::vector<float> Output vector of size OutputSize
+         *
+         * @todo Remove allocation of out vector and move to a double buffer appraoch
          */
         std::vector<float> forward(std::span<const float> in) const
         {
             std::vector<float> out(OutputSize, 0.0f);
-
             for (size_t o = 0; o < OutputSize; ++o)
             {
                 float sum = biases[o];
-
                 for (size_t i = 0; i < InputSize; ++i)
-                {
                     sum += in[i] * weights[o * InputSize + i]; // row-major
-                }
-
                 out[o] = ActivationFunc(sum);
             }
 
             return out;
         }
+
+        // Allow compile-time access
+        static constexpr size_t inputSize = InputSize;
+        static constexpr size_t outputSize = OutputSize;
     };
 
 } // namespace polann::layers
