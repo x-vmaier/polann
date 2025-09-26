@@ -1,4 +1,3 @@
-#include <vector>
 #include <iostream>
 #include "polann/layers/dense.hpp"
 #include "polann/core/model_builder.hpp"
@@ -19,11 +18,11 @@ int main()
                      .build();
 
     // Test with some input
-    std::vector<float> inputs = {0.43f, 0.22f};
+    std::array<float, 2> inputs = {0.43f, 0.22f};
     std::cout << "Input: " << inputs << std::endl;
 
     // Make prediction
-    std::vector<float> outputs = model.predict(inputs);
+    std::array<float, 1> outputs = model.predict(inputs);
     std::cout << "Output: " << outputs << std::endl;
 
     return 0;
