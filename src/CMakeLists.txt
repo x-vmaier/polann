@@ -1,10 +1,10 @@
-# Collect all source files
+# Collect library source files
 file(GLOB_RECURSE POLANN_SOURCES
     "${CMAKE_CURRENT_SOURCE_DIR}/*.cpp"
     "${CMAKE_CURRENT_SOURCE_DIR}/*.c"
 )
 
-# Create the library target
+# Create library target
 add_library(polann ${POLANN_SOURCES})
 
 # Add alias for consistent naming
@@ -36,7 +36,7 @@ else()
     target_compile_options(polann PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
-# Install the library
+# Install library
 install(TARGETS polann
     EXPORT PolannTargets
     LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
