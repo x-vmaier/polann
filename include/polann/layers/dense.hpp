@@ -37,6 +37,7 @@ namespace polann::layers
         {
             std::random_device rd;
             std::mt19937 rng(rd());
+            std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
 
             std::ranges::generate(weights, [&] { return dist(rng); });
             std::ranges::generate(biases, [&] { return dist(rng); });
