@@ -64,16 +64,17 @@ namespace polann::models
             std::array<float, maxLayerOutputSize> &buf2,
             std::index_sequence<I...>) const
         {
-            // Copy input into first buffer
-            std::copy(input.begin(), input.end(), buf1.begin());
-
-            // Forward through layers
-            size_t currentSize = InputSize;
+            // Forward through layers using fold expression
+            size_t currentSize = InputSize;                      // Track the layer size
+            std::copy(input.begin(), input.end(), buf1.begin()); // Use first buffer as input
             ((processLayer<I>(buf1, buf2, currentSize)), ...);
 
-            // Return output from the last layer
+            // Determine buffer containing the final output
+            constexpr size_t lastLayerIndex = sizeof...(Layers) - 1;
+            const auto &outputBuffer = selectOutputBuffer < lastLayerIndex % 2 == 0 > (buf1, buf2);
+
+            // Copy final output into a fixed-size array
             std::array<float, outputSize> result{};
-            const auto &outputBuffer = selectOutputBuffer < sizeof...(Layers) % 2 == 0 > (buf1, buf2);
             std::copy(outputBuffer.begin(), outputBuffer.begin() + outputSize, result.begin());
             return result;
         }
