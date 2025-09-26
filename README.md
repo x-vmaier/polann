@@ -4,9 +4,15 @@
 ![GitHub top language](https://img.shields.io/github/languages/top/x-vmaier/polann?style=flat-square)
 ![GitHub Actions Workflow Status](https://img.shields.io/github/actions/workflow/status/x-vmaier/polann/:workflow?style=flat-square)
 ![GitHub Release](https://img.shields.io/github/v/release/x-vmaier/polann?include_prereleases&style=flat-square)
-![GitHub Issues or Pull Requests](https://img.shields.io/github/issues/x-vmaier/polann?style=flat-square)
+![Development Status](https://img.shields.io/badge/status-alpha-red?style=flat-square)
 
 **Polann** (Performance-oriented Library for Artificial Neural Networks) is a C++ library for building, training, and running neural networks.
+
+## Motivation
+
+After getting into the basics of neural networks, I wanted to try building one myself. Once I had a small network of dense layers with random weights and biases running, I got hooked on the idea of making it faster and maybe even usable for real-world applications. That's how **Polann** was born.
+
+This project is still experimental and not yet production-ready.
 
 ## Building from source
 
