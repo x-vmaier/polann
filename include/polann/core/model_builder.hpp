@@ -37,7 +37,7 @@ namespace polann::core
          * @return ModelBuilder<Layers..., NewLayer> containing the extended model
          */
         template <typename NewLayer, typename... Args>
-        auto addLayer(Args &&...args)
+        [[nodiscard]] auto addLayer(Args &&...args)
         {
             auto newLayer = NewLayer(std::forward<Args>(args)...);                        // Forward args to layer
             auto newTuple = std::tuple_cat(layers, std::make_tuple(std::move(newLayer))); // Extend tuple with new layer
@@ -49,7 +49,7 @@ namespace polann::core
          *
          * @return NN<Layers...> Fully inlined neural network
          */
-        auto build()
+        [[nodiscard]] auto build()
         {
             return std::apply(
                 [](auto &&...ls)
@@ -66,7 +66,7 @@ namespace polann::core
      *
      * @return ModelBuilder<> Empty builder
      */
-    inline auto ModelBuilderRoot()
+    [[nodiscard]] inline auto ModelBuilderRoot()
     {
         return ModelBuilder<>();
     }
