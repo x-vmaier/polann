@@ -26,6 +26,21 @@ else()
     set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "${CMAKE_BINARY_DIR}/lib")
 endif()
 
+# Detect AVX2 support
+if(MSVC)
+    if(CMAKE_SIZEOF_VOID_P EQUAL 8)
+        set(POLANN_ENABLE_AVX2 TRUE)
+        message(STATUS "AVX2 enabled for MSVC x64")
+    endif()
+else()
+    include(CheckCXXCompilerFlag)
+    check_cxx_compiler_flag("-mavx2" COMPILER_SUPPORTS_AVX2)
+    if(COMPILER_SUPPORTS_AVX2)
+        set(POLANN_ENABLE_AVX2 TRUE)
+        message(STATUS "AVX2 enabled for GCC/Clang")
+    endif()
+endif()
+
 # Generate config.h
 configure_file(
     "${CMAKE_CURRENT_SOURCE_DIR}/cmake/config.h.in"

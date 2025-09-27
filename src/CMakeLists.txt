@@ -36,6 +36,14 @@ else()
     target_compile_options(polann PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 
+if(POLANN_ENABLE_AVX2)
+    if(MSVC)
+        target_compile_options(polann PRIVATE /arch:AVX2)
+    else()
+        target_compile_options(polann PRIVATE -mavx2)
+    endif()
+endif()
+
 # Install library
 install(TARGETS polann
     EXPORT PolannTargets

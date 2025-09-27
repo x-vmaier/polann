@@ -9,6 +9,8 @@
 // Build configuration
 #cmakedefine01 BUILD_SHARED_LIBS
 
+#cmakedefine POLANN_ENABLE_AVX2
+
 // Platform detection
 #ifdef _WIN32
 #define POLANN_PLATFORM_WINDOWS
