@@ -40,18 +40,21 @@ namespace polann::layers
         std::array<float, OutputSize> biases;
 
         /**
-         * @brief Initializes weights and biases with random values
+         * @brief Initializes weights and biases with Xavier/Glorot initialization
          *
-         * Uses std::mt19937 and std::uniform_real_distribution to fill arrays.
+         * Uses std::mt19937 and std::uniform_real_distribution to fill weights.
          */
         Dense()
         {
+            // Xavier/Glorot initialization
+            float limit = std::sqrt(6.0f / (InputSize + OutputSize));
+
             std::random_device rd;
             std::mt19937 rng(rd());
-            std::uniform_real_distribution<float> dist(-1.0f, 1.0f);
+            std::uniform_real_distribution<float> dist(-limit, limit);
 
-            std::ranges::generate(weights, [&] { return dist(rng); });
-            std::ranges::generate(biases, [&] { return dist(rng); });
+            std::ranges::generate(weights, [&]() { return dist(rng); });
+            std::ranges::fill(biases, 0.0f); // Initialize biases to zero
         }
 
         /**
