@@ -32,7 +32,6 @@ namespace polann::layers
         static_assert(InputSize > 0, "Input size must be positive");
         static_assert(OutputSize > 0, "Output size must be positive");
 
-        // Allow compile-time access
         static constexpr size_t inputSize = InputSize;
         static constexpr size_t outputSize = OutputSize;
 
@@ -72,6 +71,16 @@ namespace polann::layers
                     sum += in[i] * weights[o * InputSize + i];
                 out[o] = Activation::compute(sum);
             }
+        }
+
+        template <size_t InSize, size_t OutSize>
+        void forward(const std::array<float, InSize> &in, std::array<float, OutSize> &out) const
+        {
+            static_assert(InSize >= InputSize);
+            static_assert(OutSize >= OutputSize);
+
+            // Forward with zero overhead
+            forward(std::span<const float, InSize>(in), std::span<float, OutSize>(out));
         }
     };
 

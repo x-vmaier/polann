@@ -39,8 +39,8 @@ namespace polann::models
         /**
          * @brief Performs a forward pass through the network
          *
-         * @param input Fixed-size input vector for the first layer
-         * @return std::array<float, outputSize> Output vector produced by the final layer
+         * @param input Fixed-size input array for the first layer
+         * @return std::array<float, outputSize> Output array produced by the final layer
          *
          * @note Internal buffers are reused to avoid heap allocations
          */
@@ -89,8 +89,7 @@ namespace polann::models
             auto &inBuf = selectInputBuffer < LayerIndex % 2 == 0 > (buf1, buf2);
             auto &outBuf = selectOutputBuffer < LayerIndex % 2 == 0 > (buf1, buf2);
 
-            // Run forward pass of the current layer
-            layer.forward(std::span(inBuf.data(), currentSize), std::span(outBuf.data(), layer.outputSize));
+            layer.forward(inBuf, outBuf);   // Run forward pass of the current layer
             currentSize = layer.outputSize; // Update current size to match layer's output
         }
 
