@@ -47,7 +47,7 @@ namespace polann::models
         template <size_t InputSize>
         [[nodiscard]] std::array<float, outputSize> predict(const std::array<float, InputSize> &input) const
         {
-            static_assert(InputSize == firstLayerType::inputSize);
+            static_assert(InputSize == firstLayerType::inputSize, "Input size mismatch");
 
             alignas(32) std::array<float, maxLayerOutputSize> buf1{};
             alignas(32) std::array<float, maxLayerOutputSize> buf2{};

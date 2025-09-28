@@ -76,8 +76,8 @@ namespace polann::layers
         template <size_t InSize, size_t OutSize>
         void forward(const std::array<float, InSize> &in, std::array<float, OutSize> &out) const
         {
-            static_assert(InSize >= InputSize);
-            static_assert(OutSize >= OutputSize);
+            static_assert(InSize >= InputSize, "Input size mismatch");
+            static_assert(OutSize >= OutputSize, "Output size mismatch");
 
             // Forward with zero overhead
             forward(std::span<const float, InSize>(in), std::span<float, OutSize>(out));
