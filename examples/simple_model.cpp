@@ -14,9 +14,9 @@ int main()
 {
     // Create a simple neural network
     auto model = ModelBuilderRoot()
-                     .addLayer<Dense<activation_functions::relu, 2, 128>>()
-                     .addLayer<Dense<activation_functions::relu, 128, 64>>()
-                     .addLayer<Dense<activation_functions::sigmoid, 64, 1>>()
+                     .addLayer<Dense<ReLU, 2, 64>>()
+                     .addLayer<Dense<ReLU, 64, 32>>()
+                     .addLayer<Dense<Sigmoid, 32, 1>>()
                      .build();
 
     // Test with some input

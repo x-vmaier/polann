@@ -4,18 +4,29 @@
 #include <array>
 #include <random>
 #include <ranges>
+#include <concepts>
 
 namespace polann::layers
 {
     /**
+     * @brief Activation function concept
+     *
+     * @tparam Func Activation function struct with compute/derivative static methods
+     */
+    template <typename Func>
+    concept ActivationFunction = requires(float x) {
+        { Func::compute(x) } -> std::convertible_to<float>;
+        { Func::derivative(x) } -> std::convertible_to<float>;
+    };
+
+    /**
      * @brief Fully connected layer
      *
-     * @tparam ActivationFunc Activation function (see polann::utils::activation_functions)
+     * @tparam Activation Activation function type
      * @tparam InputSize Number of inputs to the layer
      * @tparam OutputSize Number of neurons in the layer
      */
-    template <auto ActivationFunc, size_t InputSize, size_t OutputSize>
-        requires requires(float x) { { ActivationFunc(x) } -> std::convertible_to<float>; }
+    template <ActivationFunction Activation, size_t InputSize, size_t OutputSize>
     struct Dense
     {
         static_assert(InputSize > 0, "Input size must be positive");
@@ -56,7 +67,7 @@ namespace polann::layers
                 float sum = biases[o];
                 for (size_t i = 0; i < InputSize; ++i)
                     sum += in[i] * weights[o * InputSize + i];
-                out[o] = ActivationFunc(sum);
+                out[o] = Activation::compute(sum);
             }
         }
     };

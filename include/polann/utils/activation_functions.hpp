@@ -1,11 +1,38 @@
 #pragma once
+
 #include <cmath>
 
-namespace polann::utils::activation_functions
+namespace polann::utils
 {
-    [[nodiscard]] inline float relu(float x) { return x > 0.0f ? x : 0.0f; }
-    [[nodiscard]] inline float sigmoid(float x) { return 1.0f / (1.0f + std::exp(-x)); }
-    [[nodiscard]] inline float tanh_fn(float x) { return std::tanh(x); }
-    [[nodiscard]] inline float identity(float x) { return x; }
+    struct Sigmoid
+    {
+        [[nodiscard]] static inline float compute(float x)
+        {
+            if (x > 500.0f)
+                return 1.0f;
+            if (x < -500.0f)
+                return 0.0f;
+            return 1.0f / (1.0f + std::exp(-x));
+        }
+        [[nodiscard]] static inline float derivative(float y) { return y * (1.0f - y); }
+    };
 
-} // namespace polann::utils::activation_functions
+    struct ReLU
+    {
+        [[nodiscard]] static inline float compute(float x) { return std::max(0.0f, x); }
+        [[nodiscard]] static inline float derivative(float y) { return (y > 0.0f) ? 1.0f : 0.0f; }
+    };
+
+    struct Tanh
+    {
+        [[nodiscard]] static inline float compute(float x) { return std::tanh(x); }
+        [[nodiscard]] static inline float derivative(float y) { return 1.0f - (y * y); }
+    };
+
+    struct Identity
+    {
+        [[nodiscard]] static inline float compute(float x) { return x; }
+        [[nodiscard]] static inline float derivative(float /*y*/) { return 1.0f; }
+    };
+
+} // namespace polann::utils
