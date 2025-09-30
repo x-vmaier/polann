@@ -24,6 +24,10 @@ namespace polann::core
         std::vector<size_t> indices; /// Shuffled indices for batching
         size_t numSamples = 0;
 
+        // Batch buffers to avoid repeated allocations
+        mutable std::vector<float> batchInputBuffer;
+        mutable std::vector<float> batchOutputBuffer;
+
         // File I/O interface
         virtual void fromFile(const std::filesystem::path &path) {}
         virtual void toFile(const std::filesystem::path &path) const {}
@@ -38,6 +42,10 @@ namespace polann::core
         {
             if (in.size() != InputSize || out.size() != OutputSize)
                 throw std::invalid_argument("Input/output size mismatch");
+
+            inputs.insert(inputs.end(), in.begin(), in.end());
+            outputs.insert(outputs.end(), out.begin(), out.end());
+            indices.push_back(numSamples++);
         }
 
         /**
@@ -51,6 +59,10 @@ namespace polann::core
         {
             static_assert(InSize == InputSize, "Input size mismatch");
             static_assert(OutSize == OutputSize, "Output size mismatch");
+
+            inputs.insert(inputs.end(), in.begin(), in.end());
+            outputs.insert(outputs.end(), out.begin(), out.end());
+            indices.push_back(numSamples++);
         }
 
         void shuffle()
@@ -95,6 +107,32 @@ namespace polann::core
 
             if (batchIndex >= numBatches(batchSize))
                 throw std::out_of_range("Batch index out of range");
+
+            size_t startSample = batchIndex * batchSize;
+            size_t endSample = std::min(startSample + batchSize, numSamples);
+            size_t actualBatchSize = endSample - startSample;
+
+            // Resize buffers if needed
+            size_t requiredInputSize = actualBatchSize * InputSize;
+            size_t requiredOutputSize = actualBatchSize * OutputSize;
+
+            if (batchInputBuffer.size() < requiredInputSize)
+                batchInputBuffer.resize(requiredInputSize);
+
+            if (batchOutputBuffer.size() < requiredOutputSize)
+                batchOutputBuffer.resize(requiredOutputSize);
+
+            // Gather samples according to shuffled indices
+            for (size_t i = 0; i < actualBatchSize; ++i)
+            {
+                size_t sampleIdx = indices[startSample + i];
+                std::copy_n(inputs.data() + sampleIdx * InputSize, InputSize, batchInputBuffer.data() + i * InputSize);
+                std::copy_n(outputs.data() + sampleIdx * OutputSize, OutputSize, batchOutputBuffer.data() + i * OutputSize);
+            }
+
+            return {
+                std::span(batchInputBuffer.data(), requiredInputSize),
+                std::span(batchOutputBuffer.data(), requiredOutputSize)};
         }
 
         /**
