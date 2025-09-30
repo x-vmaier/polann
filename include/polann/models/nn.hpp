@@ -54,6 +54,21 @@ namespace polann::models
             return predictImpl<InputSize>(input, buf1, buf2, std::index_sequence_for<Layers...>{});
         }
 
+        /**
+         * @brief Performs a backward pass through the network
+         *
+         * @param dLoss Fixed-size loss gradient array
+         */
+        template <size_t OutputSize>
+        void backward(const std::array<float, OutputSize> &dLoss)
+        {
+            static_assert(OutputSize == outputSize);
+
+            alignas(32) std::array<float, maxLayerOutputSize> buf1{};
+            alignas(32) std::array<float, maxLayerOutputSize> buf2{};
+            return backwardImpl(dLoss, buf1, buf2, std::index_sequence_for<Layers...>{});
+        }
+
     private:
         std::tuple<Layers...> layers;
 
@@ -65,9 +80,8 @@ namespace polann::models
             std::index_sequence<I...>) const
         {
             // Forward through layers using fold expression
-            size_t currentSize = InputSize;                      // Track the layer size
             std::copy(input.begin(), input.end(), buf1.begin()); // Use first buffer as input
-            ((processLayer<I>(buf1, buf2, currentSize)), ...);
+            ((forwardLayer<I>(buf1, buf2)), ...);
 
             // Determine buffer containing the final output
             constexpr size_t lastLayerIndex = sizeof...(Layers) - 1;
@@ -80,17 +94,45 @@ namespace polann::models
         }
 
         template <size_t LayerIndex>
-        void processLayer(
+        void forwardLayer(
             std::array<float, maxLayerOutputSize> &buf1,
-            std::array<float, maxLayerOutputSize> &buf2,
-            size_t &currentSize) const
+            std::array<float, maxLayerOutputSize> &buf2) const
         {
             auto &layer = std::get<LayerIndex>(layers);
+
+            // Alternating buffers
             auto &inBuf = selectInputBuffer < LayerIndex % 2 == 0 > (buf1, buf2);
             auto &outBuf = selectOutputBuffer < LayerIndex % 2 == 0 > (buf1, buf2);
 
-            layer.forward(inBuf, outBuf);   // Run forward pass of the current layer
-            currentSize = layer.outputSize; // Update current size to match layer's output
+            // Run forward pass of the current layer
+            layer.forward(inBuf, outBuf);
+        }
+
+        template <size_t OutputSize, size_t... I>
+        void backwardImpl(
+            std::span<const float, OutputSize> dLoss,
+            std::array<float, maxLayerOutputSize> &buf1,
+            std::array<float, maxLayerOutputSize> &buf2,
+            std::index_sequence<I...>)
+        {
+            std::copy(dLoss.begin(), dLoss.end(), buf1.begin());           // Start with loss gradients in buffer
+            ((backwardLayer<sizeof...(Layers) - 1 - I>(buf1, buf2)), ...); // Process layers using reverse fold
+        }
+
+        template <size_t LayerIndex>
+        void backwardLayer(
+            std::array<float, maxLayerOutputSize> &buf1,
+            std::array<float, maxLayerOutputSize> &buf2)
+        {
+            auto &layer = std::get<LayerIndex>(layers);
+
+            // For backward pass, gradient flows from output to input
+            constexpr size_t reverseIndex = sizeof...(Layers) - 1 - LayerIndex;
+            auto &gradOut = selectInputBuffer < reverseIndex % 2 == 0 > (buf1, buf2);
+            auto &gradIn = selectOutputBuffer < reverseIndex % 2 == 0 > (buf1, buf2);
+
+            // Run backward pass of the current layer
+            layer.backward(gradOut, gradIn);
         }
 
         template <bool useBuf1>

@@ -38,6 +38,14 @@ namespace polann::layers
         std::array<float, InputSize * OutputSize> weights; /// Flattened row-major weight matrix
         std::array<float, OutputSize> biases;
 
+        // Gradients
+        std::array<float, InputSize * OutputSize> gradWeights;
+        std::array<float, OutputSize> gradBiases;
+
+        // Last forward pass values for backprop
+        mutable std::array<float, InputSize> lastInput;
+        mutable std::array<float, OutputSize> lastPreActivation;
+
         /**
          * @brief Initializes weights and biases with Xavier/Glorot initialization
          *
@@ -64,23 +72,55 @@ namespace polann::layers
          */
         void forward(std::span<const float> in, std::span<float> out) const
         {
+            // Store input for backward pass
+            std::copy_n(in.begin(), InputSize, lastInput.begin());
+
             for (size_t o = 0; o < OutputSize; ++o)
             {
                 float sum = biases[o];
                 for (size_t i = 0; i < InputSize; ++i)
                     sum += in[i] * weights[o * InputSize + i];
+
+                lastPreActivation[o] = sum; // Store pre-activation
                 out[o] = Activation::compute(sum);
             }
         }
 
-        template <size_t InSize, size_t OutSize>
-        void forward(const std::array<float, InSize> &in, std::array<float, OutSize> &out) const
+        void forward(const std::array<float, InputSize> &in, std::array<float, OutputSize> &out) const
         {
-            static_assert(InSize >= InputSize, "Input size mismatch");
-            static_assert(OutSize >= OutputSize, "Output size mismatch");
-
             // Forward with zero overhead
-            forward(std::span<const float, InSize>(in), std::span<float, OutSize>(out));
+            forward(std::span<const float, InputSize>(in), std::span<float, OutputSize>(out));
+        }
+
+        /**
+         * @brief Backward pass through the layer
+         *
+         * @param gradOutput Gradient w.r.t. this layer's output
+         * @param gradInput Output: gradient w.r.t. this layer's input
+         */
+        void backward(std::span<const float> gradOutput, std::span<float> gradInput)
+        {
+            // Clear input gradients
+            std::fill(gradInput.begin(), gradInput.begin() + InputSize, 0.0f);
+
+            // Clear layer gradients
+            std::fill(gradWeights.begin(), gradWeights.end(), 0.0f);
+            std::fill(gradBiases.begin(), gradBiases.end(), 0.0f);
+
+            for (size_t o = 0; o < OutputSize; ++o)
+            {
+                // Apply activation derivative
+                float delta = gradOutput[o] * Activation::derivative(lastPreActivation[o]);
+
+                // Accumulate bias gradient
+                gradBiases[o] = delta;
+
+                for (size_t i = 0; i < InputSize; ++i)
+                {
+                    gradInput[i] += delta * weights[o * InputSize + i];    // Accumulate input gradient
+                    gradWeights[o * InputSize + i] = delta * lastInput[i]; // Accumulate weight gradient
+                }
+            }
         }
     };
 
