@@ -44,7 +44,7 @@ namespace polann::layers
 
         // Last forward pass values for backprop
         mutable std::array<float, InputSize> lastInput;
-        mutable std::array<float, OutputSize> lastPreActivation;
+        mutable std::array<float, OutputSize> lastActivation;
 
         /**
          * @brief Initializes weights and biases with Xavier/Glorot initialization
@@ -81,8 +81,8 @@ namespace polann::layers
                 for (size_t i = 0; i < InputSize; ++i)
                     sum += in[i] * weights[o * InputSize + i];
 
-                lastPreActivation[o] = sum; // Store pre-activation
-                out[o] = Activation::compute(sum);
+                lastActivation[o] = Activation::compute(sum); // Store post-activation
+                out[o] = lastActivation[o];
             }
         }
 
@@ -103,24 +103,32 @@ namespace polann::layers
             // Clear input gradients
             std::fill(gradInput.begin(), gradInput.begin() + InputSize, 0.0f);
 
-            // Clear layer gradients
-            std::fill(gradWeights.begin(), gradWeights.end(), 0.0f);
-            std::fill(gradBiases.begin(), gradBiases.end(), 0.0f);
-
             for (size_t o = 0; o < OutputSize; ++o)
             {
                 // Apply activation derivative
-                float delta = gradOutput[o] * Activation::derivative(lastPreActivation[o]);
+                float delta = gradOutput[o] * Activation::derivative(lastActivation[o]);
 
                 // Accumulate bias gradient
-                gradBiases[o] = delta;
+                gradBiases[o] += delta;
 
                 for (size_t i = 0; i < InputSize; ++i)
                 {
-                    gradInput[i] += delta * weights[o * InputSize + i];    // Accumulate input gradient
-                    gradWeights[o * InputSize + i] = delta * lastInput[i]; // Accumulate weight gradient
+                    gradInput[i] += delta * weights[o * InputSize + i];
+                    gradWeights[o * InputSize + i] += delta * lastInput[i];
                 }
             }
+        }
+
+        void clearGradients()
+        {
+            std::fill(gradWeights.begin(), gradWeights.end(), 0.0f);
+            std::fill(gradBiases.begin(), gradBiases.end(), 0.0f);
+        }
+
+        void scaleGradients(float scale)
+        {
+            for (auto &g : gradWeights) g *= scale;
+            for (auto &g : gradBiases) g *= scale;
         }
     };
 
