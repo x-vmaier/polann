@@ -12,7 +12,7 @@ namespace polann::models
     constexpr size_t maxOutputSize = (std::max)({Layers::outputSize...});
 
     /**
-     * @brief Template-based fully inlined neural network
+     * @brief Template-based neural network
      *
      * @tparam Layers... Layer types added via ModelBuilder
      */
@@ -27,6 +27,7 @@ namespace polann::models
     public:
         static constexpr size_t maxLayerOutputSize = maxOutputSize<Layers...>; /// Maximum buffer size needed for any layer output
         static constexpr size_t layerCount = sizeof...(Layers);                /// Number of layers in the network
+        static constexpr size_t inputSize = firstLayerType::inputSize;         /// Input size of the network
         static constexpr size_t outputSize = finalLayerType::outputSize;       /// Output size of the network
 
         /**
@@ -47,40 +48,107 @@ namespace polann::models
         template <size_t InputSize>
         [[nodiscard]] std::array<float, outputSize> predict(const std::array<float, InputSize> &input) const
         {
-            static_assert(InputSize == firstLayerType::inputSize, "Input size mismatch");
+            static_assert(InputSize == inputSize, "Input size mismatch");
 
             alignas(32) std::array<float, maxLayerOutputSize> buf1{};
             alignas(32) std::array<float, maxLayerOutputSize> buf2{};
-            return predictImpl<InputSize>(input, buf1, buf2, std::index_sequence_for<Layers...>{});
+            std::copy(input.begin(), input.end(), buf1.begin()); // Use first buffer as input
+
+            return predictImpl(buf1, buf2, std::index_sequence_for<Layers...>{});
         }
 
         /**
-         * @brief Performs a backward pass through the network
+         * @brief Trains the model using mini-batch gradient descent
          *
-         * @param dLoss Fixed-size loss gradient array
+         * @tparam Dataset Dataset type
+         * @tparam Optimizer Optimizer type. Must implement step(layer)
+         * @tparam LossFunction Loss function type. Must provide static compute() and gradient()
+         *
+         * @param dataset Training dataset
+         * @param optimizer Optimizer instance (e.g., SGD)
+         * @param epochs Number of full passes over dataset
+         * @param batchSize Number of samples per training batch
+         * @param shuffle Whether to shuffle dataset each epoch
+         * @param verbose Whether to print training progress
          */
-        template <size_t OutputSize>
-        void backward(const std::array<float, OutputSize> &dLoss)
+        template <typename Dataset, typename Optimizer, typename LossFunction = polann::loss::MSE>
+        void fit(Dataset &dataset, Optimizer &optimizer, int epochs = 1, int batchSize = 32, bool shuffle = true, bool verbose = true)
         {
-            static_assert(OutputSize == outputSize);
+            for (size_t epoch = 0; epoch < epochs; epoch++)
+            {
+                if (shuffle) // Shuffling helps generalizing the model
+                    dataset.shuffle();
 
-            alignas(32) std::array<float, maxLayerOutputSize> buf1{};
-            alignas(32) std::array<float, maxLayerOutputSize> buf2{};
-            return backwardImpl(dLoss, buf1, buf2, std::index_sequence_for<Layers...>{});
+                float epochLoss = 0.0f;
+                size_t numBatches = dataset.numBatches(batchSize);
+                size_t totalSamples = 0;
+
+                for (size_t batch = 0; batch < numBatches; batch++)
+                {
+                    // Get data batches from the dataset
+                    auto [batchInputs, batchLabels] = dataset.getBatch(batch, batchSize);
+                    size_t currentBatchSize = batchInputs.size() / inputSize;
+
+                    if (currentBatchSize == 0)
+                        continue;
+
+                    // Zero gradients at start of batch
+                    std::apply([](auto &...layer) { ((layer.clearGradients()), ...); }, layers);
+
+                    float batchLoss = 0.0f;
+
+                    // Accululate gradients over all samples
+                    for (size_t sample = 0; sample < currentBatchSize; sample++)
+                    {
+                        std::array<float, inputSize> input{};
+                        std::array<float, outputSize> target{};
+
+                        std::copy_n(batchInputs.data() + sample * inputSize, inputSize, input.begin());
+                        std::copy_n(batchLabels.data() + sample * outputSize, outputSize, target.begin());
+
+                        // Forward pass
+                        auto prediction = predict(input);
+
+                        // Loss
+                        std::span<const float> predSpan(prediction);
+                        std::span<const float> targetSpan(target);
+                        batchLoss += LossFunction::compute(predSpan, targetSpan);
+
+                        // Gradients
+                        std::array<float, outputSize> dLoss{};
+                        LossFunction::gradient(predSpan, targetSpan, std::span(dLoss));
+
+                        // Backward pass
+                        backward(dLoss);
+                    }
+
+                    // Scale gradients by 1/batchSize and update weights
+                    float scale = 1.0f / currentBatchSize;
+                    std::apply([&](auto &...layer) { ((layer.scaleGradients(scale)), ...); }, layers);
+                    std::apply([&](auto &...layer) { ((optimizer.step(layer)), ...); }, layers);
+
+                    epochLoss += batchLoss;
+                    totalSamples += currentBatchSize;
+                }
+
+                if (totalSamples > 0)
+                    epochLoss /= totalSamples;
+
+                if (verbose && (epoch % 10 == 0 || epoch == epochs - 1))
+                    std::cout << "Epoch " << epoch << "/" << epochs << ", Loss: " << epochLoss << std::endl;
+            }
         }
 
     private:
         std::tuple<Layers...> layers;
 
-        template <size_t InputSize, size_t... I>
+        template <size_t... I>
         [[nodiscard]] std::array<float, outputSize> predictImpl(
-            std::span<const float, InputSize> input,
             std::array<float, maxLayerOutputSize> &buf1,
             std::array<float, maxLayerOutputSize> &buf2,
             std::index_sequence<I...>) const
         {
             // Forward through layers using fold expression
-            std::copy(input.begin(), input.end(), buf1.begin()); // Use first buffer as input
             ((forwardLayer<I>(buf1, buf2)), ...);
 
             // Determine buffer containing the final output
@@ -100,7 +168,8 @@ namespace polann::models
         {
             auto &layer = std::get<LayerIndex>(layers);
 
-            // Alternating buffers
+            // Alternate between buf1 and buf2 to avoid extra memory allocations
+            // At each layer, one buffer serves as input and the other as output
             auto &inBuf = selectInputBuffer < LayerIndex % 2 == 0 > (buf1, buf2);
             auto &outBuf = selectOutputBuffer < LayerIndex % 2 == 0 > (buf1, buf2);
 
@@ -108,15 +177,26 @@ namespace polann::models
             layer.forward(inBuf, outBuf);
         }
 
-        template <size_t OutputSize, size_t... I>
+        template <size_t OutputSize>
+        void backward(const std::array<float, OutputSize> &dLoss)
+        {
+            static_assert(OutputSize == outputSize, "Input size mismatch");
+
+            alignas(32) std::array<float, maxLayerOutputSize> buf1{};
+            alignas(32) std::array<float, maxLayerOutputSize> buf2{};
+            std::copy(dLoss.begin(), dLoss.end(), buf1.begin()); // Start with loss gradients in first buffer
+
+            return backwardImpl(buf1, buf2, std::index_sequence_for<Layers...>{});
+        }
+
+        template <size_t... I>
         void backwardImpl(
-            std::span<const float, OutputSize> dLoss,
             std::array<float, maxLayerOutputSize> &buf1,
             std::array<float, maxLayerOutputSize> &buf2,
             std::index_sequence<I...>)
         {
-            std::copy(dLoss.begin(), dLoss.end(), buf1.begin());           // Start with loss gradients in buffer
-            ((backwardLayer<sizeof...(Layers) - 1 - I>(buf1, buf2)), ...); // Process layers using reverse fold
+            // Process layers using reverse fold
+            ((backwardLayer<sizeof...(Layers) - 1 - I>(buf1, buf2)), ...);
         }
 
         template <size_t LayerIndex>
