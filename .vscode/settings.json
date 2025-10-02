@@ -75,6 +75,14 @@
         "sstream": "cpp",
         "stop_token": "cpp",
         "string": "cpp",
-        "thread": "cpp"
+        "thread": "cpp",
+        "complex": "cpp",
+        "cstdarg": "cpp",
+        "map": "cpp",
+        "numeric": "cpp",
+        "regex": "cpp",
+        "set": "cpp",
+        "unordered_set": "cpp",
+        "xtree": "cpp"
     }
 }

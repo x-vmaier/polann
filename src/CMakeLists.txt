@@ -27,6 +27,9 @@ target_include_directories(polann
     ${CMAKE_CURRENT_SOURCE_DIR}
 )
 
+# Link libraries
+target_link_libraries(polann PRIVATE openblas)
+
 # Compiler-specific options
 target_compile_features(polann PUBLIC cxx_std_23)
 

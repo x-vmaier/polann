@@ -1,3 +1,6 @@
 [submodule "vendored/matplotplusplus"]
 	path = vendored/matplotplusplus
 	url = https://github.com/alandefreitas/matplotplusplus.git
+[submodule "vendored/openblas"]
+	path = vendored/openblas
+	url = https://github.com/xianyi/OpenBLAS.git
