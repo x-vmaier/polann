@@ -1,0 +1,3 @@
+[submodule "vendored/matplotplusplus"]
+	path = vendored/matplotplusplus
+	url = https://github.com/alandefreitas/matplotplusplus.git
