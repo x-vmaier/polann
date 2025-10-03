@@ -14,6 +14,17 @@ After getting into the basics of neural networks, I wanted to try building one m
 
 This project is still experimental and not yet production-ready.
 
+## Roadmap
+
+- [x] Basic dense layers implemented
+- [x] Forward propagation
+- [x] Backpropagation
+- [ ] OpenBLAS acceleration for matrix operations
+- [ ] Quantization (QAT, PTQ)
+- [ ] Saving and loading models
+- [ ] Convolutional layers
+- [ ] Recurrent layers
+
 ## Building from source
 
 ```bash
