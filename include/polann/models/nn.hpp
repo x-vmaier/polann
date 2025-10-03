@@ -1,9 +1,9 @@
 #pragma once
 
-#include <tuple>
 #include <span>
-#include <algorithm>
+#include <tuple>
 #include <array>
+#include "polann/loss/mse.hpp"
 
 namespace polann::models
 {

@@ -48,9 +48,6 @@ configure_file(
     @ONLY
 )
 
-# Add libraries
-add_subdirectory(vendored/openblas)
-
 # Add subdirectories
 add_subdirectory(src)
 
