@@ -1,4 +1,5 @@
 #include <iostream>
+#include <matplot/matplot.h>
 #include "polann/core/dataset.hpp"
 #include "polann/layers/dense.hpp"
 #include "polann/optimizers/sgd.hpp"
@@ -48,7 +49,7 @@ Dataset<2, 1> circleDataset(float radius, float range, size_t samples)
 int main()
 {
     // Generate dataset
-    auto dataset = circleDataset(0.6f, 1.0f, 1000);
+    auto dataset = circleDataset(0.6f, 0.7f, 1000);
 
     // Create a simple neural network
     auto model = ModelBuilderRoot()
@@ -68,6 +69,29 @@ int main()
     // Make prediction
     std::array<float, 1> outputs = model.predict(inputs);
     std::cout << "Output: " << outputs << std::endl;
+
+    const int N = 100; // grid resolution
+    std::vector<std::vector<double>> Z(N, std::vector<double>(N, 0.0));
+
+    for (int i = 0; i < N; ++i)
+    {
+        for (int j = 0; j < N; ++j)
+        {
+            double x = -1.0 + 2.0 * i / (N - 1); // range -1 to 1
+            double y = -1.0 + 2.0 * j / (N - 1);
+
+            std::array<float, 2> input = {static_cast<float>(x), static_cast<float>(y)};
+            std::array<float, 1> output = model.predict(input);
+
+            Z[j][i] = static_cast<double>(output[0]);
+        }
+    }
+
+    matplot::imagesc(Z);
+    matplot::colorbar();
+    matplot::xlabel("x");
+    matplot::ylabel("y");
+    matplot::show();
 
     return 0;
 }
