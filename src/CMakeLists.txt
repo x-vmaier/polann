@@ -40,7 +40,7 @@ if(POLANN_ENABLE_AVX2)
     if(MSVC)
         target_compile_options(polann PRIVATE /arch:AVX2)
     else()
-        target_compile_options(polann PRIVATE -mavx2)
+        target_compile_options(polann PRIVATE -mavx2 -mfma)
     endif()
 endif()
 
